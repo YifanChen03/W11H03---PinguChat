@@ -76,7 +76,7 @@ public class DataHandler {
      * @return Registrierung erfolgreich
      */
     public boolean register(String username, String kennung) {
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/users/register"))
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/user/register"))
                 .header("Content-Type", "application/json")
                 .POST(BodyPublishers.ofString("{\"username\": \"" + username + "\",\"tum_kennung\": \"" + kennung + "\"}"))
                 .build();
@@ -138,7 +138,7 @@ public class DataHandler {
      * Wenn ein Token mit Nutzername und Passwort erhalten wird, werden diese gespeichert.
      * Anschließend wird die Nutzer ID geladen.
      * Endpoint: /token
-     *           /api/users/me
+     *           /api/user/me
      * @param username Nutzername
      * @param password Passwort
      * @return Login erfolgreich
@@ -147,7 +147,7 @@ public class DataHandler {
         // TODO: Token anfragen und, falls die Anfrage erfolgreich war, Nutzername und Passwort dieses DataHandlers setzen.
         String token = "";
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/users/me/"))
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/user/me/"))
                 .header("accept", "application/json")
                 .header("Authorization", "Bearer " + token)
                 .GET()
