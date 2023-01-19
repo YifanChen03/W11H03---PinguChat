@@ -12,10 +12,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -90,7 +94,8 @@ public class DataHandler {
         }
 
         // TODO: Zurückgeben, ob die Anfrage erfolgreich war.
-        return false;
+        int statusCode = response.statusCode();
+        return statusCode == 200;
     }
 
     /**
@@ -130,6 +135,13 @@ public class DataHandler {
         }
 
         // TODO: Falls die Anfrage erfolgreich war, Token auslesen und zurückgeben.
+        int statusCode = response.statusCode();
+
+        if (statusCode == 200) {
+            JSONObject responseAsJSONObject = new JSONObject(response.body());
+            return responseAsJSONObject.getString("access_token");
+        }
+
         return null;
     }
 
@@ -145,7 +157,14 @@ public class DataHandler {
      */
     public boolean login(String username, String password) {
         // TODO: Token anfragen und, falls die Anfrage erfolgreich war, Nutzername und Passwort dieses DataHandlers setzen.
-        String token = "";
+        String tempToken = requestToken(username, password);
+        if (tempToken != null) {
+            this.username = username;
+            this.password = password;
+        }
+
+        //code that existed beforehand, changed "" to tempToken
+        String token = tempToken;
 
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/user/me/"))
                 .header("accept", "application/json")
@@ -162,6 +181,14 @@ public class DataHandler {
         }
 
         // TODO: Zurückgeben, ob die Anfrage erfolgreich war und wenn ja, die ID dieses DataHandlers setzen.
+        int statusCode = response.statusCode();
+        if (statusCode == 200) {
+            JSONObject responseAsJSONObject = new JSONObject(response.body());
+            int id = responseAsJSONObject.getInt("id");
+            this.id = id;
+            return true;
+        }
+
         return false;
     }
 
@@ -171,7 +198,6 @@ public class DataHandler {
      * @return Map von Nutzern und IDs
      */
     public Map<Integer, User> getContacts() {
-
 
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/users"))
                 .header("Authorization", "Bearer " + requestToken(username, password))
@@ -188,6 +214,27 @@ public class DataHandler {
 
         // TODO: Erzeuge und fülle eine Map entsprechend der vom Server erhaltenen Antwort,
         //  falls die Anfrage erfolgreich war.
+        int statusCode = response.statusCode();
+
+        if (statusCode == 200) {
+            JSONArray responseAsJSONArray = new JSONArray(response.body());
+
+            Map<Integer, User> output = IntStream.range(0, responseAsJSONArray.length())
+                    .mapToObj(index -> responseAsJSONArray.getJSONObject(index))
+                    .collect(Collectors.toMap(jsonObject -> jsonObject.getInt("id"),
+                            jsonObject -> new User(jsonObject.getInt("id"),
+                                    jsonObject.getString("username"), new ArrayList<>())));
+
+            /*for (int i = 0; i < responseAsJSONArray.length(); i++) {
+                JSONObject tempJSONObject = responseAsJSONArray.getJSONObject(i);
+                int id = tempJSONObject.getInt("id");
+                String username = tempJSONObject.getString("username");
+                output.put(id, new User(id, username, new ArrayList<>()));
+            }*/
+
+            return output;
+        }
+
         return null;
     }
 
@@ -219,6 +266,27 @@ public class DataHandler {
 
         // TODO: Erzeuge und fülle eine List entsprechend der vom Server erhaltenen Antwort,
         //  falls die Anfrage erfolgreich war.
+        int statusCode = response.statusCode();
+
+        if (statusCode == 200) {
+            JSONArray responseAsJSONArray = new JSONArray(response.body());
+
+            List<Message> output = IntStream.range(0, responseAsJSONArray.length())
+                    .mapToObj(index -> {
+                        JSONObject tempJSONObject = responseAsJSONArray.getJSONObject(index);
+                        LocalDateTime time = LocalDateTime.parse(tempJSONObject.getString("time"));
+                        String text = tempJSONObject.getString("text");
+                        int from_id = tempJSONObject.getInt("from_id");
+                        Boolean self = from_id == this.id;
+                        int message_id = tempJSONObject.getInt("id");
+                        Message tempMessage = new Message(time, text, self, message_id);
+                        return tempMessage;
+                    })
+                    .collect(Collectors.toList());
+
+            return output;
+        }
+
         return null;
     }
 
@@ -276,6 +344,38 @@ public class DataHandler {
             // TODO: Socket erstellen und bei Erfolg den Handshake mit dem Server ausführen.
             //  Der 'DataInputStream in' und 'DataOutputStream out' sollen entsprechend zum Lesen/Schreiben
             //  des Input-/Output-Streams des Sockets gesetzt werden.
+            Socket tempSocket = new Socket(serverAddress, 1337);
+            DataInputStream tempDIS;
+            DataOutputStream tempDOS;
+            byte[] bytes;
+
+            //check Server Hello
+            tempDIS = (DataInputStream) tempSocket.getInputStream();
+            bytes = tempDIS.readAllBytes();
+
+            if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 42) {
+                throw new ConnectionException();
+            }
+
+            //send Client Hello
+            bytes = new byte[]{0, 1};
+            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            tempDOS.write(bytes);
+
+            //send Client Identification
+            bytes = new byte[]{0, 2, 2, 19, 55};
+            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            tempDOS.write(bytes);
+
+            //send Client Authentication
+            bytes = new byte[]{0, 3, 0, 1, 42};
+            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            tempDOS.write(bytes);
+
+            //set attributes
+            socket = tempSocket;
+            in = (DataInputStream) socket.getInputStream();
+            out = (DataOutputStream) socket.getOutputStream();
 
             startInputHandler();
             connected = true;
