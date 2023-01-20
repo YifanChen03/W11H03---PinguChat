@@ -349,23 +349,22 @@ public class DataHandler {
             //  Der 'DataInputStream in' und 'DataOutputStream out' sollen entsprechend zum Lesen/Schreiben
             //  des Input-/Output-Streams des Sockets gesetzt werden.
             Socket tempSocket = new Socket(serverAddress, 1337);
-            DataInputStream tempDIS;
-            DataOutputStream tempDOS;
+            DataInputStream tempDIS = new DataInputStream(tempSocket.getInputStream());
+            DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());;
+            byte[] serverHello = new byte[]{0, 0, SUPPORTED_VERSION};
             byte[] bytes;
             byte[] tempByte;
 
             //check Server Hello
-            tempDIS = new DataInputStream(tempSocket.getInputStream());
             bytes = new byte[tempDIS.available()];
             tempDIS.read(bytes);
 
-            if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 42) {
+            if (!Arrays.equals(bytes, serverHello)) {
                 throw new ConnectionException();
             }
 
             //send Client Hello
             bytes = new byte[]{0, 1};
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
             //send Client Identification
@@ -388,13 +387,12 @@ public class DataHandler {
                 bytes[3 + i] = tempByte[i];
             }
             //send to server
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
             //send Client Authentication
             byte[] stringByte = StandardCharsets.UTF_8.encode(requestToken()).array();
 
-            tempByte = ByteBuffer.allocate(4).putInt(stringByte.length).array();
+            tempByte = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
             //turn into byteArray with length 2
             tempByte = Arrays.copyOfRange(tempByte, 2, tempByte.length);
 
@@ -410,11 +408,16 @@ public class DataHandler {
                 bytes[4 + i] = stringByte[i];
             }
             //send to server
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
+            //finish by flushing and closing
+            tempDOS.flush();
+            tempDOS.close();
+            tempDIS.close();
+            tempSocket.close();
+
             //set attributes
-            socket = tempSocket;
+            socket = new Socket(serverAddress, 1337);
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
 
@@ -440,11 +443,42 @@ public class DataHandler {
             if (!connected) {
                 connect();
             }
-            //have to code this next
 
             // TODO: Teile dem Server mit, dass du dich mit dem Chatpartner mit ID 'partnerID' verbinden möchtest
             //  und stelle sicher, dass der Server dies acknowledgt.
+            byte[] serverAcknowledgement = new byte[]{0, 5};
+            byte[] sendBytes;
+            byte[] receivedBytes;
+            byte[] tempByte;
 
+            //send Partner Switch
+            tempByte = ByteBuffer.allocate(4).putInt(partnerID).array();
+            //clean up leading zeros in tempByte
+            int startIndex = 0;
+            for (byte b : tempByte) {
+                if (b != 0) {
+                    break;
+                }
+                startIndex++;
+            }
+            tempByte = Arrays.copyOfRange(tempByte, startIndex, tempByte.length);
+            Integer tempLength = tempByte.length;
+
+            //create byte to send in sendBytes
+            sendBytes = new byte[]{0, 4, tempLength.byteValue()};
+            sendBytes = Arrays.copyOf(sendBytes, 3 + tempByte.length);
+            for (int i = 0; i < tempByte.length; i++) {
+                sendBytes[3 + i] = tempByte[i];
+            }
+            //send to server
+            out.write(sendBytes);
+
+            //check Server Acknowledge
+            receivedBytes = getResponse(serverAcknowledgement.length);
+
+            if (!Arrays.equals(receivedBytes, serverAcknowledgement)) {
+                throw new ConnectionException();
+            }
         } catch (Throwable t) {
 
             if (t.getClass().equals(ConnectionException.class)) {
@@ -462,10 +496,33 @@ public class DataHandler {
     public void sendMessage(String message) {
         try {
             // Kodiert die übergebene 'message' in UTF-8
-            byte[] buf = StandardCharsets.UTF_8.encode(message).array();
-            int length = Math.min(buf.length, 0xffff);
+            //byte[] buf = StandardCharsets.UTF_8.encode(message).array();
+            //int length = Math.min(buf.length, 0xffff);
 
             // TODO: Sende die übergebene Message
+            byte[] sendBytes;
+            byte[] tempBytes;
+
+            //send Message
+            byte[] stringByte = StandardCharsets.UTF_8.encode(message).array();
+
+            tempBytes = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
+            //turn into byteArray with length 2
+            tempBytes = Arrays.copyOfRange(tempBytes, 2, tempBytes.length);
+
+            //concatenate tempBytes to bytes and then stringByte to bytes
+            sendBytes = new byte[]{1};
+            sendBytes = Arrays.copyOf(sendBytes, 1 + tempBytes.length);
+            for (int i = 0; i < tempBytes.length; i++) {
+                sendBytes[1 + i] = tempBytes[i];
+            }
+            //concatenate stringByte to bytes
+            sendBytes = Arrays.copyOf(sendBytes, stringByte.length + sendBytes.length);
+            for (int i = 0; i < stringByte.length; i++) {
+                sendBytes[3 + i] = stringByte[i];
+            }
+            //send to server
+            out.write(sendBytes);
 
         } catch (Throwable t) {
             t.printStackTrace();
