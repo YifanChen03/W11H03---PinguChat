@@ -42,8 +42,13 @@ public class ViewController {
 		if (username.isBlank() || password.isBlank()) {
 			return false;
 		}
+		boolean login = dh.login(username, password);
+
+		if (login) {
+			contacts = dh.getContacts();
+		}
 		
-		return dh.login(username, password);
+		return login;
 	}
 
 	/**

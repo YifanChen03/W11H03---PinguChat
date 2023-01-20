@@ -158,9 +158,11 @@ public class DataHandler {
     public boolean login(String username, String password) {
         // TODO: Token anfragen und, falls die Anfrage erfolgreich war, Nutzername und Passwort dieses DataHandlers setzen.
         String tempToken = requestToken(username, password);
+        boolean attributesSet = false;
         if (tempToken != null) {
             this.username = username;
             this.password = password;
+            attributesSet = true;
         }
 
         //code that existed beforehand, changed "" to tempToken
@@ -186,7 +188,9 @@ public class DataHandler {
             JSONObject responseAsJSONObject = new JSONObject(response.body());
             int id = responseAsJSONObject.getInt("id");
             this.id = id;
-            return true;
+            if (attributesSet) {
+                return true;
+            }
         }
 
         return false;
@@ -348,9 +352,10 @@ public class DataHandler {
             DataInputStream tempDIS;
             DataOutputStream tempDOS;
             byte[] bytes;
+            byte[] tempByte;
 
             //check Server Hello
-            tempDIS = (DataInputStream) tempSocket.getInputStream();
+            tempDIS = new DataInputStream(tempSocket.getInputStream());
             bytes = tempDIS.readAllBytes();
 
             if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 42) {
@@ -359,23 +364,58 @@ public class DataHandler {
 
             //send Client Hello
             bytes = new byte[]{0, 1};
-            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
             //send Client Identification
-            bytes = new byte[]{0, 2, 2, 19, 55};
-            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            tempByte = ByteBuffer.allocate(4).putInt(id).array();
+            //clean up leading zeros in tempByte
+            int startIndex = 0;
+            for (byte b : tempByte) {
+                if (b != 0) {
+                    break;
+                }
+                startIndex++;
+            }
+            tempByte = Arrays.copyOfRange(tempByte, startIndex, tempByte.length);
+            Integer tempLength = tempByte.length;
+
+            //create byte to send in bytes
+            bytes = new byte[]{0, 2, tempLength.byteValue()};
+            bytes = Arrays.copyOf(bytes, 3 + tempByte.length);
+            for (int i = 0; i < tempByte.length; i++) {
+                bytes[3 + i] = tempByte[i];
+            }
+            //send to server
+            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
             //send Client Authentication
-            bytes = new byte[]{0, 3, 0, 1, 42};
-            tempDOS = (DataOutputStream) tempSocket.getOutputStream();
+            byte[] stringByte = StandardCharsets.UTF_8.encode(requestToken()).array();
+
+            tempByte = ByteBuffer.allocate(4).putInt(stringByte.length).array();
+            //turn into byteArray with length 2
+            tempByte = Arrays.copyOfRange(tempByte, 2, tempByte.length);
+
+            //concatenate tempByte to bytes and then stringByte to bytes
+            bytes = new byte[]{0, 3};
+            bytes = Arrays.copyOf(bytes, 2 + tempByte.length);
+            for (int i = 0; i < tempByte.length; i++) {
+                bytes[2 + i] = tempByte[i];
+            }
+            //concatenate stringByte to bytes
+            bytes = Arrays.copyOf(bytes, stringByte.length + bytes.length);
+            for (int i = 0; i < stringByte.length; i++) {
+                bytes[4 + i] = stringByte[i];
+            }
+            //send to server
+            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
 
             //set attributes
             socket = tempSocket;
-            in = (DataInputStream) socket.getInputStream();
-            out = (DataOutputStream) socket.getOutputStream();
+            in = new DataInputStream(socket.getInputStream());
+            out = new DataOutputStream(socket.getOutputStream());
 
             startInputHandler();
             connected = true;
