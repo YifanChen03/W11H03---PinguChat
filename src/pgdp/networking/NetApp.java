@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 
 import javafx.application.Application;
 import javafx.beans.value.ObservableValue;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -23,6 +25,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import pgdp.networking.DataHandler.ConnectionException;
 import pgdp.networking.ViewController.Message;
 
@@ -39,19 +42,22 @@ public class NetApp extends Application {
 
 	@Override
 	public void start(Stage stage) throws Exception {
-		
-	    ViewController.contacts = new HashMap<>();
 
-		stage.setTitle("Test");
+		ViewController.contacts = new HashMap<>();
+
+		EventHandler<WindowEvent> onClose = e -> ViewController.dh.close();
+
+		stage.setTitle("PinguChat");
 		stage.setMinHeight(400);
 		stage.setMinWidth(800);
 		stage.setScene(new Scene(createView()));
+		stage.setOnCloseRequest(onClose);
 		stage.show();
 	}
 
 	/**
 	 * Creates overall view.
-	 * 
+	 *
 	 * @return the final HBox to be put into the scene
 	 */
 	public StackPane createView() {
@@ -70,13 +76,13 @@ public class NetApp extends Application {
 	 * as hitting the login button. Request Password will display the password in
 	 * the second TextField, if successful. If any problem occurs one or both
 	 * TextFields will get a red border.
-	 * 
+	 *
 	 * @return login view
 	 */
 	public VBox createLogin() {
 		VBox vb = new VBox();
-        TextField username = new TextField();
-        TextField kennung = new TextField();
+		TextField username = new TextField();
+		TextField kennung = new TextField();
 		TextField password = new TextField();
 		Label request = new Label("Request Password");
 		Label login = new Label("Login");
@@ -88,47 +94,49 @@ public class NetApp extends Application {
 		vb.setAlignment(Pos.CENTER);
 		vb.setSpacing(10);
 
-        username.setMaxWidth(300);
-        username.setStyle("-fx-control-inner-background: rgb(64, 68, 75);\n"
-                + " -fx-background-color: -fx-control-inner-background;\n"
-                + " -fx-prompt-text-fill: rgb(142, 146, 153)");
-        username.setPromptText("username");
-        username.setBorder(new Border(
-                new BorderStroke(Color.rgb(142, 146, 153), BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-        username.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                event.consume();
-                if (ViewController.login(username.getText(), password.getText())) {
-                    vb.toBack();
-                } else {
-                    username.setBorder(
-                            new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-                    password.setBorder(
-                            new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-                }
-            }
-        });
+		username.setMaxWidth(300);
+		username.setStyle("-fx-control-inner-background: rgb(64, 68, 75);\n"
+				+ " -fx-background-color: -fx-control-inner-background;\n"
+				+ " -fx-prompt-text-fill: rgb(142, 146, 153)");
+		username.setPromptText("username");
+		username.setBorder(new Border(
+				new BorderStroke(Color.rgb(142, 146, 153), BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+		username.setOnKeyPressed(event -> {
+			if (event.getCode() == KeyCode.ENTER) {
+				event.consume();
+				if (ViewController.login(username.getText(), password.getText())) {
+					addContacts(ViewController.chatSelectVBox);
+					vb.toBack();
+				} else {
+					username.setBorder(
+							new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+					password.setBorder(
+							new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+				}
+			}
+		});
 
-        kennung.setMaxWidth(300);
-        kennung.setStyle("-fx-control-inner-background: rgb(64, 68, 75);\n"
-                + " -fx-background-color: -fx-control-inner-background;\n"
-                + " -fx-prompt-text-fill: rgb(142, 146, 153)");
-        kennung.setPromptText("TUM Kennung");
-        kennung.setBorder(new Border(
-                new BorderStroke(Color.rgb(142, 146, 153), BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-        kennung.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                event.consume();
-                if (ViewController.login(username.getText(), password.getText())) {
-                    vb.toBack();
-                } else {
-                    kennung.setBorder(
-                            new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-                    kennung.setBorder(
-                            new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-                }
-            }
-        });
+		kennung.setMaxWidth(300);
+		kennung.setStyle("-fx-control-inner-background: rgb(64, 68, 75);\n"
+				+ " -fx-background-color: -fx-control-inner-background;\n"
+				+ " -fx-prompt-text-fill: rgb(142, 146, 153)");
+		kennung.setPromptText("TUM Kennung");
+		kennung.setBorder(new Border(
+				new BorderStroke(Color.rgb(142, 146, 153), BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+		kennung.setOnKeyPressed(event -> {
+			if (event.getCode() == KeyCode.ENTER) {
+				event.consume();
+				if (ViewController.login(username.getText(), password.getText())) {
+					addContacts(ViewController.chatSelectVBox);
+					vb.toBack();
+				} else {
+					kennung.setBorder(
+							new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+					kennung.setBorder(
+							new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+				}
+			}
+		});
 
 		password.setMaxWidth(300);
 		password.setStyle("-fx-control-inner-background: rgb(64, 68, 75);\n"
@@ -141,6 +149,7 @@ public class NetApp extends Application {
 			if (event.getCode() == KeyCode.ENTER) {
 				event.consume();
 				if (ViewController.login(username.getText(), password.getText())) {
+					addContacts(ViewController.chatSelectVBox);
 					vb.toBack();
 				} else {
 					username.setBorder(
@@ -159,12 +168,12 @@ public class NetApp extends Application {
 		request.setAlignment(Pos.CENTER);
 		request.setOnMouseClicked(event -> {
 			if (!ViewController.requestPassword(username.getText(), kennung.getText())) {
-                username.setBorder(
-                        new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
-                kennung.setBorder(
-                        new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+				username.setBorder(
+						new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
+				kennung.setBorder(
+						new Border(new BorderStroke(Color.RED, BorderStrokeStyle.SOLID, new CornerRadii(5), null)));
 			}
-            
+
 		});
 
 		login.setTextFill(Color.WHITE);
@@ -175,6 +184,7 @@ public class NetApp extends Application {
 		login.setAlignment(Pos.CENTER);
 		login.setOnMouseClicked(event -> {
 			if (ViewController.login(username.getText(), password.getText())) {
+				addContacts(ViewController.chatSelectVBox);
 				vb.toBack();
 			} else {
 				username.setBorder(
@@ -190,7 +200,7 @@ public class NetApp extends Application {
 	/**
 	 * Creates the scroll pane where the user can select a contact to start
 	 * chatting.
-	 * 
+	 *
 	 * @return select window
 	 */
 	public ScrollPane createChatSelect() {
@@ -207,21 +217,27 @@ public class NetApp extends Application {
 		chats.setPrefSize(300, 300);
 		chats.setFillWidth(true);
 
+		return sp;
+	}
+
+	public void addContacts(VBox chats) {
+
 		// Add all available contacts
 		ViewController.contacts.entrySet().stream().sorted((c1, c2) -> {
 			List<Message> l1 = c1.getValue().messages();
 			List<Message> l2 = c2.getValue().messages();
+			if (l1.isEmpty() && l2.isEmpty()) {
+				return c1.getValue().name().compareTo(c2.getValue().name());
+			}
 			return l1.isEmpty() ? 1
 					: l2.isEmpty() ? -1 : l2.get(l2.size() - 1).date().compareTo(l1.get(l1.size() - 1).date());
 		}).forEachOrdered(e -> chats.getChildren().add(createChatButton(e.getValue().name(), e.getKey())));
-
-		return sp;
 	}
 
 	/**
 	 * Creates for the given name and id a new label. Calls method when clicking
 	 * onto it.
-	 * 
+	 *
 	 * @param name name of the chat partner
 	 * @param id   id of the chat partner
 	 * @return label
@@ -240,7 +256,7 @@ public class NetApp extends Application {
 	/**
 	 * Creates the right pane of the view, where the user can write and read
 	 * messages.
-	 * 
+	 *
 	 * @return chat window
 	 */
 	public BorderPane createChatView() {
@@ -266,7 +282,7 @@ public class NetApp extends Application {
 
 	/**
 	 * Creates the scroll pane of the message history
-	 * 
+	 *
 	 * @return message history
 	 */
 	public ScrollPane createMessageView() {
@@ -288,7 +304,7 @@ public class NetApp extends Application {
 
 		vb.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 		vb.heightProperty().addListener((ObservableValue<? extends Number> observable, Number oldValue,
-				Number newValue) -> sp.setVvalue((Double) newValue));
+										 Number newValue) -> sp.setVvalue((Double) newValue));
 		return sp;
 	}
 
@@ -296,7 +312,7 @@ public class NetApp extends Application {
 	 * Creates the text area where the user can input messages. Prevents user from
 	 * sending empty messages. Sends messages on pressing Enter. Adds new line on
 	 * pressing Shift+Enter.
-	 * 
+	 *
 	 * @return
 	 */
 	public TextArea createTextInput() {
@@ -317,7 +333,7 @@ public class NetApp extends Application {
 						.mapToObj(e -> (char) e).map(e -> e.toString()).collect(Collectors.joining()).equals("")) {
 					ViewController.displayMessage(ViewController.currentChat,
 							new Message(LocalDateTime.now(), input.getText().strip(), true, -1));
-					
+
 					ViewController.dh.sendMessage(input.getText().strip());
 					input.clear();
 				}

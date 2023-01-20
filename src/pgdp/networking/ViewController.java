@@ -27,13 +27,13 @@ public class ViewController {
 
 	public static Map<Integer, User> contacts = new HashMap<>();
 	public static int currentChat;
-	
+
 	public static DataHandler dh = new DataHandler();
 
 	/**
 	 * Connects this client to the server by username and password. username and
 	 * password have to be not-blank.
-	 * 
+	 *
 	 * @param username User name of the client
 	 * @param password Password of the client
 	 * @return true if connection was successful
@@ -42,25 +42,26 @@ public class ViewController {
 		if (username.isBlank() || password.isBlank()) {
 			return false;
 		}
+
 		boolean login = dh.login(username, password);
 
 		if (login) {
 			contacts = dh.getContacts();
 		}
-		
+
 		return login;
 	}
 
 	/**
 	 * Requests a new password for the provided username.
-	 * 
+	 *
 	 * @param username User name of the client
 	 * @return newly created password or null, if username was invalid or something
 	 *         else went wrong
 	 */
 	public static boolean requestPassword(String username, String kennung) {
-	
-	    return dh.register(username, kennung);
+
+		return dh.register(username, kennung);
 	}
 
 	/**
@@ -69,17 +70,17 @@ public class ViewController {
 	 * history.
 	 */
 	public static void addNext50MessagesToView() {
-		
-	    User current = contacts.get(currentChat);
-	    int messages = current.messages.size()/50;
-	    current.messages.addAll(dh.getMessagesWithUser(current.id, 50, messages));
+
+		User current = contacts.get(currentChat);
+		int messages = current.messages.size()/50;
+		current.messages.addAll(dh.getMessagesWithUser(current.id, 50, messages));
 	}
 
 	/**
 	 * Adds a new message to the selected chat. If id and currentChat match, the
 	 * message will be displayed immediately. The corresponding label to this chat
 	 * will be moved to top in chatSelectBox.
-	 * 
+	 *
 	 * @param id ID of the chat partner (not the own ID, even if the sender is the
 	 *           chat partner)
 	 * @param m  new message to be added
@@ -111,28 +112,31 @@ public class ViewController {
 	/**
 	 * Selects the chat to be displayed now by id. Gets invoked by clicking on the
 	 * corresponding label in the left scroll pane.
-	 * 
+	 *
 	 * @param id id of the chat
 	 */
 	public static void selectUser(int id) {
 		currentChat = id;
 		messageVBox.getChildren().clear();
-		contacts.get(id).messages().stream().forEachOrdered(e -> messageVBox.getChildren().add(createMessageBox(e)));
+		User user = contacts.get(id);
+		user.messages.clear();
+		user.messages.addAll(dh.getMessagesWithUser(id, 50, 0));
+		user.messages().stream().forEachOrdered(e -> messageVBox.getChildren().add(createMessageBox(e)));
 		contactLabel.setText(contacts.get(id).name());
 		inputArea.setPromptText("Message @" + contactLabel.getText());
 		inputArea.requestFocus();
-		
+
 		try {
-            dh.switchConnection(id);
-        } catch (ConnectionException e1) {
-            e1.printStackTrace();
-        }
+			dh.switchConnection(id);
+		} catch (ConnectionException e1) {
+			e1.printStackTrace();
+		}
 	}
 
 	/**
 	 * Creates a message box to be displayed within the app. Alignment to left or
 	 * right side is determined by the author (self or other)
-	 * 
+	 *
 	 * @param m message to be displayed
 	 * @return message box
 	 */

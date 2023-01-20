@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,9 +41,9 @@ public class DataHandler {
     private int id;
     private String username;
     private String password;
-    
+
     public static String serverAddress = "carol.sse.cit.tum.de";
-    
+
     private final static byte SUPPORTED_VERSION = 42;
 
     boolean connected;
@@ -203,6 +202,7 @@ public class DataHandler {
      */
     public Map<Integer, User> getContacts() {
 
+
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://" + serverAddress + "/api/users"))
                 .header("Authorization", "Bearer " + requestToken(username, password))
                 .GET()
@@ -254,8 +254,8 @@ public class DataHandler {
         HttpRequest request = HttpRequest
                 .newBuilder(URI.create("http://" + serverAddress + "/api/messages/with/"
                         + Long.toString(id)
-                        + "?count=" + Integer.toString(count)
-                        + "&count=" + Integer.toString(page)))
+                        + "?limit=" + Integer.toString(count)
+                        + "&pagination=" + Integer.toString(page)))
                 .header("Authorization", "Bearer " + requestToken(username, password))
                 .GET()
                 .build();
@@ -295,10 +295,10 @@ public class DataHandler {
     }
 
     /*-**********************************************************************************************************************
-    *                                                                                                                       *
-    *                                       Socket Handling                                                                 *
-    *                                                                                                                       *
-    *************************************************************************************************************************/
+     *                                                                                                                       *
+     *                                       Socket Handling                                                                 *
+     *                                                                                                                       *
+     *************************************************************************************************************************/
 
     /**
      * Thread Methode um ankommende Nachrichten zu behandeln
@@ -323,7 +323,7 @@ public class DataHandler {
                     }
                     case 1 -> {
 
-                        int length = (in.readByte()<<8) | in.readByte();
+                        int length = ((in.readByte()&0xff)<<8) | (in.readByte()&0xff);
 
                         byte[] content = new byte[length];
                         in.read(content);
@@ -356,7 +356,8 @@ public class DataHandler {
 
             //check Server Hello
             tempDIS = new DataInputStream(tempSocket.getInputStream());
-            bytes = tempDIS.readAllBytes();
+            bytes = new byte[tempDIS.available()];
+            tempDIS.read(bytes);
 
             if (bytes[0] != 0 || bytes[1] != 0 || bytes[2] != 42) {
                 throw new ConnectionException();
@@ -559,7 +560,7 @@ public class DataHandler {
     public void setClient(HttpClient client) {
         this.client = client;
     }
-    
+
     /**
      * Schlißet offene Verbindungen
      */
