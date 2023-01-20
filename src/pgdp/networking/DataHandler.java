@@ -345,6 +345,7 @@ public class DataHandler {
      */
     private void connect() throws ConnectionException {
         try {
+            //System.out.println(id);
             // TODO: Socket erstellen und bei Erfolg den Handshake mit dem Server ausführen.
             //  Der 'DataInputStream in' und 'DataOutputStream out' sollen entsprechend zum Lesen/Schreiben
             //  des Input-/Output-Streams des Sockets gesetzt werden.
@@ -439,6 +440,7 @@ public class DataHandler {
      * @throws ConnectionException
      */
     public void switchConnection(int partnerID) throws ConnectionException{
+        System.out.println(partnerID);
         try {
             if (!connected) {
                 connect();
