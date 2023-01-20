@@ -440,6 +440,7 @@ public class DataHandler {
             if (!connected) {
                 connect();
             }
+            //have to code this next
 
             // TODO: Teile dem Server mit, dass du dich mit dem Chatpartner mit ID 'partnerID' verbinden möchtest
             //  und stelle sicher, dass der Server dies acknowledgt.
