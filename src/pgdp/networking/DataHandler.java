@@ -157,12 +157,12 @@ public class DataHandler {
     public boolean login(String username, String password) {
         // TODO: Token anfragen und, falls die Anfrage erfolgreich war, Nutzername und Passwort dieses DataHandlers setzen.
         String tempToken = requestToken(username, password);
-        boolean attributesSet = false;
-        if (tempToken != null) {
-            this.username = username;
-            this.password = password;
-            attributesSet = true;
+        if (tempToken == null) {
+            return false;
         }
+
+        this.username = username;
+        this.password = password;
 
         //code that existed beforehand, changed "" to tempToken
         String token = tempToken;
@@ -187,9 +187,7 @@ public class DataHandler {
             JSONObject responseAsJSONObject = new JSONObject(response.body());
             int id = responseAsJSONObject.getInt("id");
             this.id = id;
-            if (attributesSet) {
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -281,7 +279,7 @@ public class DataHandler {
                         LocalDateTime time = LocalDateTime.parse(tempJSONObject.getString("time"));
                         String text = tempJSONObject.getString("text");
                         int from_id = tempJSONObject.getInt("from_id");
-                        Boolean self = from_id == this.id;
+                        boolean self = from_id == this.id;
                         int message_id = tempJSONObject.getInt("id");
                         Message tempMessage = new Message(time, text, self, message_id);
                         return tempMessage;
@@ -351,7 +349,7 @@ public class DataHandler {
             //  des Input-/Output-Streams des Sockets gesetzt werden.
             Socket tempSocket = new Socket(serverAddress, 1337);
             DataInputStream tempDIS = new DataInputStream(tempSocket.getInputStream());
-            DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());;
+            DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             byte[] serverHello = new byte[]{0, 0, SUPPORTED_VERSION};
             byte[] bytes;
             byte[] tempByte;
@@ -359,6 +357,9 @@ public class DataHandler {
             //check Server Hello
             bytes = new byte[tempDIS.available()];
             tempDIS.read(bytes);
+            //for some reason tempDIS has no input here
+            //int bytesRead = tempDIS.read(bytes);
+            //System.out.println(bytesRead);
 
             if (!Arrays.equals(bytes, serverHello)) {
                 throw new ConnectionException();
@@ -440,7 +441,7 @@ public class DataHandler {
      * @throws ConnectionException
      */
     public void switchConnection(int partnerID) throws ConnectionException{
-        System.out.println(partnerID);
+        //System.out.println(partnerID);
         try {
             if (!connected) {
                 connect();
@@ -474,6 +475,7 @@ public class DataHandler {
             }
             //send to server
             out.write(sendBytes);
+            out.flush();
 
             //check Server Acknowledge
             receivedBytes = getResponse(serverAcknowledgement.length);
@@ -525,6 +527,7 @@ public class DataHandler {
             }
             //send to server
             out.write(sendBytes);
+            out.flush();
 
         } catch (Throwable t) {
             t.printStackTrace();
