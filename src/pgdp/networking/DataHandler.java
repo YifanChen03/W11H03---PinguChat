@@ -366,27 +366,22 @@ public class DataHandler {
                 throw new ConnectionException();
             }
 
-            //set attributes
-            socket = tempSocket;
-            in = new DataInputStream(socket.getInputStream());
-            out = new DataOutputStream(socket.getOutputStream());
-
             //send Client Hello
             bytes = new byte[]{0, 1};
-            out.write(bytes);
+            tempDOS.write(bytes);
             //tempDOS.flush();
 
             //send Client Identification
-            tempByte = ByteBuffer.allocate(8).putInt(id).array();
+            tempByte = ByteBuffer.allocate(4).putInt(id).array();
             //clean up ending zeros in tempByte
-            int endIndex = 0;
+            /*int endIndex = 0;
             for (byte b : tempByte) {
                 if (b == 0) {
                     break;
                 }
                 endIndex++;
             }
-            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);
+            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);*/
             Integer tempLength = tempByte.length;
 
             //create byte to send in bytes
@@ -396,7 +391,7 @@ public class DataHandler {
                 bytes[3 + i] = tempByte[i];
             }
             //send to server
-            out.write(bytes);
+            tempDOS.write(bytes);
             //tempDOS.flush();
 
             //send Client Authentication
@@ -431,14 +426,19 @@ public class DataHandler {
                 bytes[4 + i] = stringByte[i];
             }
             //send to server
-            out.write(bytes);
+            tempDOS.write(bytes);
             //tempDOS.flush();
 
             //finish by flushing and closing
-            //tempDOS.flush();
+            tempDOS.flush();
             /*tempDOS.close();
             tempDIS.close();
             tempSocket.close();*/
+
+            //set attributes
+            socket = tempSocket;
+            in = new DataInputStream(socket.getInputStream());
+            out = new DataOutputStream(socket.getOutputStream());
 
             startInputHandler();
             connected = true;
@@ -472,16 +472,16 @@ public class DataHandler {
             byte[] tempByte;
 
             //send Partner Switch
-            tempByte = ByteBuffer.allocate(8).putInt(partnerID).array();
+            tempByte = ByteBuffer.allocate(4).putInt(partnerID).array();
             //clean up ending zeros in tempByte
-            int endIndex = 0;
+            /*int endIndex = 0;
             for (byte b : tempByte) {
                 if (b == 0) {
                     break;
                 }
                 endIndex++;
             }
-            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);
+            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);*/
             Integer tempLength = tempByte.length;
 
             //create byte to send in sendBytes
