@@ -354,15 +354,15 @@ public class DataHandler {
             Socket tempSocket = new Socket(serverAddress, 1337);
             DataInputStream tempDIS = new DataInputStream(tempSocket.getInputStream());
             DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());
-            byte[] serverHello = new byte[]{0, 0, SUPPORTED_VERSION};
+            //byte[] serverHello = new byte[]{0x00, 0x00, 0x2a};
             byte[] bytes;
             byte[] tempByte;
 
             //check Server Hello
-            bytes = new byte[tempDIS.available()];
+            bytes = new byte[3];
             tempDIS.read(bytes);
 
-            if (!Arrays.equals(bytes, serverHello)) {
+            if (bytes[0] != 0x00 || bytes[1] != 0x00 || bytes[2] != 0x2a) {
                 throw new ConnectionException();
             }
 
@@ -427,7 +427,7 @@ public class DataHandler {
             tempDOS.write(bytes);
 
             //finish by flushing and closing
-            //tempDOS.flush();
+            tempDOS.flush();
             /*tempDOS.close();
             tempDIS.close();
             tempSocket.close();*/
@@ -463,7 +463,7 @@ public class DataHandler {
 
             // TODO: Teile dem Server mit, dass du dich mit dem Chatpartner mit ID 'partnerID' verbinden möchtest
             //  und stelle sicher, dass der Server dies acknowledgt.
-            byte[] serverAcknowledgement = new byte[]{0, 5};
+            //byte[] serverAcknowledgement = new byte[]{0, 5};
             byte[] sendBytes;
             byte[] receivedBytes;
             byte[] tempByte;
@@ -489,11 +489,12 @@ public class DataHandler {
             }
             //send to server
             out.write(sendBytes);
+            out.flush();
 
             //check Server Acknowledge
             receivedBytes = getResponse(2);
 
-            if (!Arrays.equals(receivedBytes, serverAcknowledgement)) {
+            if (receivedBytes[0] != 0x00 || receivedBytes[1] != 0x05) {
                 throw new ConnectionException();
             }
         } catch (Throwable t) {
@@ -540,6 +541,7 @@ public class DataHandler {
             }
             //send to server
             out.write(sendBytes);
+            out.flush();
 
         } catch (Throwable t) {
             t.printStackTrace();
