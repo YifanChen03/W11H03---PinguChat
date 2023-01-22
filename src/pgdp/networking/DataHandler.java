@@ -354,7 +354,6 @@ public class DataHandler {
             Socket tempSocket = new Socket(serverAddress, 1337);
             DataInputStream tempDIS = new DataInputStream(tempSocket.getInputStream());
             DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());
-            //byte[] serverHello = new byte[]{0x00, 0x00, 0x2a};
             byte[] bytes;
             byte[] tempByte;
 
@@ -369,19 +368,9 @@ public class DataHandler {
             //send Client Hello
             bytes = new byte[]{0, 1};
             tempDOS.write(bytes);
-            //tempDOS.flush();
 
             //send Client Identification
             tempByte = ByteBuffer.allocate(4).putInt(id).array();
-            //clean up ending zeros in tempByte
-            /*int endIndex = 0;
-            for (byte b : tempByte) {
-                if (b == 0) {
-                    break;
-                }
-                endIndex++;
-            }
-            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);*/
             Integer tempLength = tempByte.length;
 
             //create byte to send in bytes
@@ -392,23 +381,9 @@ public class DataHandler {
             }
             //send to server
             tempDOS.write(bytes);
-            //tempDOS.flush();
 
             //send Client Authentication
-            byte[] stringByte = requestToken().getBytes("UTF-8");//StandardCharsets.UTF_8.encode(requestToken()).array();
-            /*int count = 0;
-            for (int i = 0; i < stringByte.length; i++) {
-                if (stringByte[i] != 0) {
-                    count++;
-                }
-            }
-            byte[] tempStringByte = new byte[count];
-            for (int i = 0, j = 0; i < stringByte.length; i++) {
-                if (stringByte[i] != 0) {
-                    tempStringByte[j++] = stringByte[i];
-                }
-            }
-            stringByte = tempStringByte;*/
+            byte[] stringByte = requestToken().getBytes("UTF-8");
 
             tempByte = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
             //turn into byteArray with length 2
@@ -427,13 +402,9 @@ public class DataHandler {
             }
             //send to server
             tempDOS.write(bytes);
-            //tempDOS.flush();
 
             //finish by flushing and closing
             tempDOS.flush();
-            /*tempDOS.close();
-            tempDIS.close();
-            tempSocket.close();*/
 
             //set attributes
             socket = tempSocket;
@@ -458,7 +429,6 @@ public class DataHandler {
      * @throws ConnectionException
      */
     public void switchConnection(int partnerID) throws ConnectionException{
-        //System.out.println(partnerID);
         try {
             if (!connected) {
                 connect();
@@ -466,22 +436,13 @@ public class DataHandler {
 
             // TODO: Teile dem Server mit, dass du dich mit dem Chatpartner mit ID 'partnerID' verbinden möchtest
             //  und stelle sicher, dass der Server dies acknowledgt.
-            //byte[] serverAcknowledgement = new byte[]{0, 5};
             byte[] sendBytes;
             byte[] receivedBytes;
             byte[] tempByte;
 
             //send Partner Switch
             tempByte = ByteBuffer.allocate(4).putInt(partnerID).array();
-            //clean up ending zeros in tempByte
-            /*int endIndex = 0;
-            for (byte b : tempByte) {
-                if (b == 0) {
-                    break;
-                }
-                endIndex++;
-            }
-            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);*/
+
             Integer tempLength = tempByte.length;
 
             //create byte to send in sendBytes
