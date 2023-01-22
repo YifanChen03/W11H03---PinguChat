@@ -352,44 +352,35 @@ public class DataHandler {
             //  Der 'DataInputStream in' und 'DataOutputStream out' sollen entsprechend zum Lesen/Schreiben
             //  des Input-/Output-Streams des Sockets gesetzt werden.
             Socket tempSocket = new Socket(serverAddress, 1337);
-            DataInputStream tempDIS = null;
-            DataOutputStream tempDOS = null;
+            DataInputStream tempDIS = new DataInputStream(tempSocket.getInputStream());
+            DataOutputStream tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             byte[] serverHello = new byte[]{0, 0, SUPPORTED_VERSION};
             byte[] bytes;
             byte[] tempByte;
 
             //check Server Hello
-            tempDIS = new DataInputStream(tempSocket.getInputStream());
             bytes = new byte[tempDIS.available()];
             tempDIS.read(bytes);
-            tempDIS.close();
-            //bytes = tempDIS.readNBytes(3);
-            //System.out.println(Arrays.toString(bytes));
-            //for some reason tempDIS has no input here
-            //int bytesRead = tempDIS.read(bytes);
-            //System.out.println(bytesRead);
-            //System.out.println(Arrays.toString(bytes));
+
             if (!Arrays.equals(bytes, serverHello)) {
                 throw new ConnectionException();
             }
 
             //send Client Hello
             bytes = new byte[]{0, 1};
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
-            tempDOS.close();
 
             //send Client Identification
-            tempByte = ByteBuffer.allocate(4).putInt(id).array();
-            //clean up leading zeros in tempByte
-            int startIndex = 0;
+            tempByte = ByteBuffer.allocate(8).putInt(id).array();
+            //clean up ending zeros in tempByte
+            int endIndex = 0;
             for (byte b : tempByte) {
-                if (b != 0) {
+                if (b == 0) {
                     break;
                 }
-                startIndex++;
+                endIndex++;
             }
-            tempByte = Arrays.copyOfRange(tempByte, startIndex, tempByte.length);
+            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);
             Integer tempLength = tempByte.length;
 
             //create byte to send in bytes
@@ -399,12 +390,23 @@ public class DataHandler {
                 bytes[3 + i] = tempByte[i];
             }
             //send to server
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
-            tempDOS.close();
 
             //send Client Authentication
             byte[] stringByte = StandardCharsets.UTF_8.encode(requestToken()).array();
+            int count = 0;
+            for (int i = 0; i < stringByte.length; i++) {
+                if (stringByte[i] != 0) {
+                    count++;
+                }
+            }
+            byte[] tempStringByte = new byte[count];
+            for (int i = 0, j = 0; i < stringByte.length; i++) {
+                if (stringByte[i] != 0) {
+                    tempStringByte[j++] = stringByte[i];
+                }
+            }
+            stringByte = tempStringByte;
 
             tempByte = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
             //turn into byteArray with length 2
@@ -422,27 +424,15 @@ public class DataHandler {
                 bytes[4 + i] = stringByte[i];
             }
             //send to server
-            tempDOS = new DataOutputStream(tempSocket.getOutputStream());
             tempDOS.write(bytes);
-            tempDOS.close();
-
-            /*bytes = new byte[tempDIS.available()];
-            tempDIS.read(bytes);
-            if (Arrays.equals(bytes, new byte[]{0, -16}) || Arrays.equals(bytes, new byte[]{0, -15}) ||
-                    Arrays.equals(bytes, new byte[]{0, -1})) {
-                return;
-            }*/
 
             //finish by flushing and closing
-            tempDOS.flush();
+            //tempDOS.flush();
             /*tempDOS.close();
             tempDIS.close();
             tempSocket.close();*/
 
             //set attributes
-            /*socket = new Socket(serverAddress, 1337);
-            in = new DataInputStream(socket.getInputStream());
-            out = new DataOutputStream(socket.getOutputStream());*/
             socket = tempSocket;
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
@@ -479,16 +469,16 @@ public class DataHandler {
             byte[] tempByte;
 
             //send Partner Switch
-            tempByte = ByteBuffer.allocate(4).putInt(partnerID).array();
-            //clean up leading zeros in tempByte
-            int startIndex = 0;
+            tempByte = ByteBuffer.allocate(8).putInt(partnerID).array();
+            //clean up ending zeros in tempByte
+            int endIndex = 0;
             for (byte b : tempByte) {
-                if (b != 0) {
+                if (b == 0) {
                     break;
                 }
-                startIndex++;
+                endIndex++;
             }
-            tempByte = Arrays.copyOfRange(tempByte, startIndex, tempByte.length);
+            tempByte = Arrays.copyOfRange(tempByte, 0, endIndex);
             Integer tempLength = tempByte.length;
 
             //create byte to send in sendBytes
@@ -498,12 +488,10 @@ public class DataHandler {
                 sendBytes[3 + i] = tempByte[i];
             }
             //send to server
-            out = new DataOutputStream(socket.getOutputStream());
             out.write(sendBytes);
-            out.flush();
 
             //check Server Acknowledge
-            receivedBytes = getResponse(in.available());
+            receivedBytes = getResponse(2);
 
             if (!Arrays.equals(receivedBytes, serverAcknowledgement)) {
                 throw new ConnectionException();
@@ -551,9 +539,7 @@ public class DataHandler {
                 sendBytes[3 + i] = stringByte[i];
             }
             //send to server
-            out = new DataOutputStream(socket.getOutputStream());
             out.write(sendBytes);
-            out.flush();
 
         } catch (Throwable t) {
             t.printStackTrace();
