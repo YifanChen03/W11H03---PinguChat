@@ -366,9 +366,15 @@ public class DataHandler {
                 throw new ConnectionException();
             }
 
+            //set attributes
+            socket = tempSocket;
+            in = new DataInputStream(socket.getInputStream());
+            out = new DataOutputStream(socket.getOutputStream());
+
             //send Client Hello
             bytes = new byte[]{0, 1};
-            tempDOS.write(bytes);
+            out.write(bytes);
+            //tempDOS.flush();
 
             //send Client Identification
             tempByte = ByteBuffer.allocate(8).putInt(id).array();
@@ -390,11 +396,12 @@ public class DataHandler {
                 bytes[3 + i] = tempByte[i];
             }
             //send to server
-            tempDOS.write(bytes);
+            out.write(bytes);
+            //tempDOS.flush();
 
             //send Client Authentication
-            byte[] stringByte = StandardCharsets.UTF_8.encode(requestToken()).array();
-            int count = 0;
+            byte[] stringByte = requestToken().getBytes("UTF-8");//StandardCharsets.UTF_8.encode(requestToken()).array();
+            /*int count = 0;
             for (int i = 0; i < stringByte.length; i++) {
                 if (stringByte[i] != 0) {
                     count++;
@@ -406,7 +413,7 @@ public class DataHandler {
                     tempStringByte[j++] = stringByte[i];
                 }
             }
-            stringByte = tempStringByte;
+            stringByte = tempStringByte;*/
 
             tempByte = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
             //turn into byteArray with length 2
@@ -424,18 +431,14 @@ public class DataHandler {
                 bytes[4 + i] = stringByte[i];
             }
             //send to server
-            tempDOS.write(bytes);
+            out.write(bytes);
+            //tempDOS.flush();
 
             //finish by flushing and closing
-            tempDOS.flush();
+            //tempDOS.flush();
             /*tempDOS.close();
             tempDIS.close();
             tempSocket.close();*/
-
-            //set attributes
-            socket = tempSocket;
-            in = new DataInputStream(socket.getInputStream());
-            out = new DataOutputStream(socket.getOutputStream());
 
             startInputHandler();
             connected = true;
@@ -489,7 +492,6 @@ public class DataHandler {
             }
             //send to server
             out.write(sendBytes);
-            out.flush();
 
             //check Server Acknowledge
             receivedBytes = getResponse(2);
@@ -525,6 +527,10 @@ public class DataHandler {
             byte[] stringByte = StandardCharsets.UTF_8.encode(message).array();
 
             tempBytes = ByteBuffer.allocate(4).putInt(Math.min(stringByte.length, 0xffff)).array();
+            //if message is longer than maxlength cut it short
+            if (stringByte.length > 0xffff) {
+                stringByte = Arrays.copyOfRange(stringByte, 0, 0xffff);
+            }
             //turn into byteArray with length 2
             tempBytes = Arrays.copyOfRange(tempBytes, 2, tempBytes.length);
 
